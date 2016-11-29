@@ -7,7 +7,7 @@
 
 #include "func.h"
 
-static void print_magic(Elf64_Ehdr *hdr) {
+static void print_magic(Elf_Ehdr *hdr) {
     printf("  Magic: ");
     for (int i = 0; i < EI_NIDENT; i++) {
         printf("%02x ", hdr->e_ident[i]);
@@ -94,7 +94,7 @@ static void print_magic(Elf64_Ehdr *hdr) {
     printf("  ABI Version: %d\n", hdr->e_ident[EI_ABIVERSION]);
 }
 
-static void print_shtype(Elf64_Shdr *shdr) {
+static void print_shtype(Elf_Shdr *shdr) {
    
     printf("  Section type: ");
     switch(shdr->sh_type) {
@@ -195,7 +195,7 @@ static void print_shtype(Elf64_Shdr *shdr) {
     printf("\n");
 }
 
-void print_shflag(Elf64_Shdr *shdr) {
+void print_shflag(Elf_Shdr *shdr) {
     printf("  Flags: \n");
     int flags = shdr->sh_flags;
     if (flags & SHF_WRITE) {
@@ -246,10 +246,10 @@ void print_shflag(Elf64_Shdr *shdr) {
 }
 
 static void parse_each_section(FILE *fp, int sh_off, int sh_num, char *strtab, int stridx) {
-    Elf64_Shdr shdr;
+    Elf_Shdr shdr;
     fseek(fp, sh_off, SEEK_SET);
     for (int i = 0; i < sh_num; i++) {
-        fread(&shdr, sizeof(Elf64_Shdr), 1, fp);
+        fread(&shdr, sizeof(Elf_Shdr), 1, fp);
         if (!i) {
             continue;
         }
@@ -268,21 +268,21 @@ static void parse_each_section(FILE *fp, int sh_off, int sh_num, char *strtab, i
     }
 }
 
-static void parse_section(FILE *fp, Elf64_Ehdr *hdr) {
+static void parse_section(FILE *fp, Elf_Ehdr *hdr) {
     int i;
     int stridx = hdr->e_shstrndx;
     int sh_num = hdr->e_shnum;
     int sh_off = hdr->e_shoff;
-    fseek(fp, hdr->e_shoff + sizeof(Elf64_Shdr) * stridx, SEEK_SET);
-    Elf64_Shdr shdr;
-    fread(&shdr, sizeof(Elf64_Shdr), 1, fp);
+    fseek(fp, hdr->e_shoff + sizeof(Elf_Shdr) * stridx, SEEK_SET);
+    Elf_Shdr shdr;
+    fread(&shdr, sizeof(Elf_Shdr), 1, fp);
     char *strtab = malloc(sizeof(char) * shdr.sh_size+1);
     fseek(fp, shdr.sh_offset, SEEK_SET);
     fread(strtab, shdr.sh_size, 1, fp);
     parse_each_section(fp, sh_off, sh_num, strtab, stridx);
 }
 
-static void print_type(Elf64_Ehdr *hdr) {
+static void print_type(Elf_Ehdr *hdr) {
     printf("  Type: ");
     switch (hdr->e_type) {
         case ET_NONE:     
@@ -319,7 +319,7 @@ static void print_type(Elf64_Ehdr *hdr) {
     printf("\n");
 }
 
-static void print_machine(Elf64_Ehdr *hdr) {
+static void print_machine(Elf_Ehdr *hdr) {
     printf("  Machine: ");
     switch(hdr->e_machine) {
         case EM_NONE:         
@@ -863,59 +863,59 @@ static void print_machine(Elf64_Ehdr *hdr) {
 #define print_with_hex(hdr, format, member) \
     printf(format, hdr->member)
 
-static void print_version(Elf64_Ehdr *hdr) {
+static void print_version(Elf_Ehdr *hdr) {
     print_with_hex(hdr, "  Version: 0x%02x\n", e_version);
 }
 
-static void print_entry(Elf64_Ehdr *hdr) {
+static void print_entry(Elf_Ehdr *hdr) {
     print_with_hex(hdr, "  Entry point address: 0x%x\n", e_entry);
 }
 
-static void print_phoff(Elf64_Ehdr *hdr) {
+static void print_phoff(Elf_Ehdr *hdr) {
     print_with_hex(hdr, "  Start of program headers: %d\n", e_phoff);
 }
 
-static void print_shoff(Elf64_Ehdr *hdr) {
+static void print_shoff(Elf_Ehdr *hdr) {
     print_with_hex(hdr, "  Start of section headers: %d\n", e_shoff);
 }
 
-static void print_flags(Elf64_Ehdr *hdr) {
+static void print_flags(Elf_Ehdr *hdr) {
     print_with_hex(hdr, "  Flags: 0x%02x\n", e_flags);
 }
 
-static void print_selfsize(Elf64_Ehdr *hdr) {
+static void print_selfsize(Elf_Ehdr *hdr) {
     print_with_hex(hdr, "  Size of this header: %d\n", e_ehsize);
 }
 
-static void print_phentsize(Elf64_Ehdr *hdr) {
+static void print_phentsize(Elf_Ehdr *hdr) {
     print_with_hex(hdr, "  Size of program headers: %d\n", e_phentsize);
 }
 
-static void print_phnum(Elf64_Ehdr *hdr) {
+static void print_phnum(Elf_Ehdr *hdr) {
     print_with_hex(hdr, "  Number of program headers: %d\n", e_phnum);
 }
 
-static void print_shentsize(Elf64_Ehdr *hdr) {
+static void print_shentsize(Elf_Ehdr *hdr) {
     print_with_hex(hdr, "  Size of section headers: %d\n", e_shentsize);
 }
 
-static void print_shnum(Elf64_Ehdr *hdr) {
+static void print_shnum(Elf_Ehdr *hdr) {
     print_with_hex(hdr, "  Number of section headers: %d\n", e_shnum);
 }
 
-static void print_shstrndx(Elf64_Ehdr *hdr) {
+static void print_shstrndx(Elf_Ehdr *hdr) {
     print_with_hex(hdr, "  Section header string table index: %d\n", e_shstrndx);
 }
 
 void print_header(const char *filename) {
-    Elf64_Ehdr hdr;
+    Elf_Ehdr hdr;
     FILE *fp = fopen(filename, "r");
     if (!fp) {
         fprintf(stderr, "failed to open elf image file [%s]\n", filename);
         exit(-1);
     }
 
-    fread(&hdr, sizeof(Elf64_Ehdr), 1, fp);
+    fread(&hdr, sizeof(Elf_Ehdr), 1, fp);
 
     parse_section(fp, &hdr);
 
