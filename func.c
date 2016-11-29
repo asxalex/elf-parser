@@ -245,41 +245,156 @@ void print_shflag(Elf_Shdr *shdr) {
     }
 }
 
-static void parse_each_section(FILE *fp, int sh_off, int sh_num, char *strtab, int stridx) {
-    Elf_Shdr shdr;
-    fseek(fp, sh_off, SEEK_SET);
-    for (int i = 0; i < sh_num; i++) {
-        fread(&shdr, sizeof(Elf_Shdr), 1, fp);
-        if (!i) {
-            continue;
-        }
-        printf("=== section info for [%s] ===\n", strtab + shdr.sh_name);
-        printf("  Section name (string tbl index): %d\n", shdr.sh_name);
-        print_shtype(&shdr);
-        print_shflag(&shdr);
-        printf("  Section virtual addr at execution: %d\n", shdr.sh_addr);
-        printf("  Section file offset: %d\n", shdr.sh_offset);
-        printf("  Section size in bytes: %d\n", shdr.sh_size);
-        printf("  Link to another section: %d\n", shdr.sh_link);
-        printf("  Additional section information: %d\n", shdr.sh_info);
-        printf("  Section alignment: %d\n", shdr.sh_addralign);
-        printf("  Entry size if section holds table: %d\n", shdr.sh_entsize);
-        printf("\n");
+Elf_Sym* get_symbol(FILE *fp, Elf_Shdr *symtab) {
+    long restore = ftell(fp);
+    fseek(fp, symtab->sh_offset, SEEK_SET);
+    Elf_Sym *symbols = malloc(symtab->sh_size);
+    if (!symbols) {
+        fprintf(stderr, "failed to malloc for symbols\n");
+        exit(-1);
     }
+
+    fread(symbols, symtab->sh_size, 1, fp);
+    fseek(fp, restore, SEEK_SET);
+    return symbols;
 }
 
-static void parse_section(FILE *fp, Elf_Ehdr *hdr) {
-    int i;
-    int stridx = hdr->e_shstrndx;
-    int sh_num = hdr->e_shnum;
-    int sh_off = hdr->e_shoff;
-    fseek(fp, hdr->e_shoff + sizeof(Elf_Shdr) * stridx, SEEK_SET);
-    Elf_Shdr shdr;
-    fread(&shdr, sizeof(Elf_Shdr), 1, fp);
-    char *strtab = malloc(sizeof(char) * shdr.sh_size+1);
-    fseek(fp, shdr.sh_offset, SEEK_SET);
-    fread(strtab, shdr.sh_size, 1, fp);
-    parse_each_section(fp, sh_off, sh_num, strtab, stridx);
+static void print_symbol_info(Elf_Sym *symbol) {
+    unsigned char bind = ELF_ST_BIND(symbol->st_info);
+    unsigned char type = ELF_ST_TYPE(symbol->st_info);
+    printf("    bind info: ");
+    switch(bind) {
+        case STB_LOCAL:   
+            printf("Local symbol");
+            break;
+        case STB_GLOBAL:  
+            printf("Global symbol");
+            break;
+        case STB_WEAK:    
+            printf("Weak symbol");
+            break;
+        case STB_NUM:     
+            printf("Number of defined types.");
+            break;
+        case STB_GNU_UNIQUE:  
+            printf("Unique symbol.");
+            break;
+        case STB_HIOS:    
+            printf("End of OS-specific");
+            break;
+        case STB_LOPROC:  
+            printf("Start of processor-specific");
+            break;
+        case STB_HIPROC:  
+            printf("End of processor-specific");
+            break;
+    }
+    printf("\n");
+
+    printf("    type info: ");
+    switch(type) {
+        case STT_NOTYPE:  
+            printf("Symbol type is unspecified");
+            break;
+        case STT_OBJECT:  
+            printf("Symbol is a data object");
+            break;
+        case STT_FUNC:    
+            printf("Symbol is a code object");
+            break;
+        case STT_SECTION: 
+            printf("Symbol associated with a section");
+            break;
+        case STT_FILE:    
+            printf("Symbol's name is file name");
+            break;
+        case STT_COMMON:  
+            printf("Symbol is a common data object");
+            break;
+        case STT_TLS:     
+            printf("Symbol is thread-local data objec");
+            break;
+        case STT_NUM:     
+            printf("Number of defined types.");
+            break;
+        case STT_GNU_IFUNC:   
+            printf("Symbol is indirect code object");
+            break;
+        case STT_HIOS:    
+            printf("End of OS-specific");
+            break;
+        case STT_LOPROC:  
+            printf("Start of processor-specific");
+            break;
+        case STT_HIPROC:  
+            printf("End of processor-specific");
+            break;
+    }
+    printf("\n");
+}
+
+static void print_symbol_value(Elf_Sym* symbol) {
+    
+}
+
+static void print_symbol_shndx(Elf_Sym* symbol) {
+    printf("    shndx: ");
+    switch(symbol->st_shndx) {
+        case SHN_UNDEF:   
+            printf("Undefined section");
+            break;
+        case SHN_LOPROC:  
+            printf("Start of processor-specific");
+            break;
+        case SHN_AFTER:   
+            printf("Order section after all others (Solaris).");
+            break;
+        case SHN_HIPROC:  
+            printf("End of processor-specific");
+            break;
+        case SHN_LOOS:    
+            printf("Start of OS-specific");
+            break;
+        case SHN_HIOS:    
+            printf("End of OS-specific");
+            break;
+        case SHN_ABS:     
+            printf("Associated symbol is absolute");
+            break;
+        case SHN_COMMON:  
+            printf("Associated symbol is common");
+            break;
+        case SHN_XINDEX:  
+            printf("Index is in extra table.");
+            break;
+        default:
+            printf("%d", symbol->st_shndx);
+    }
+    printf("\n");
+}
+
+void print_symbol(Elf_Sym *symbol, char *strtab) {
+    printf("  symbol name [%d] = %s\n", symbol->st_name, strtab + symbol->st_name);
+    printf("    value: %d\n", symbol->st_value);
+    printf("    size: %d\n",  symbol->st_size);
+    print_symbol_info(symbol);
+    printf("    other: %d\n", symbol->st_other);
+    print_symbol_shndx(symbol);
+}
+
+void print_section(Elf_Shdr *shdr, char *shstr, char *strtab) {
+    printf("=== section info for [%s] ===\n", shstr + shdr->sh_name);
+    printf("  Section name (string tbl index): %d\n", shdr->sh_name);
+    print_shtype(shdr);
+    print_shflag(shdr);
+    printf("  Section virtual addr at execution: %d\n", shdr->sh_addr);
+    printf("  Section file offset: %d\n", shdr->sh_offset);
+    printf("  Section size in bytes: %d\n", shdr->sh_size);
+    printf("  Link to another section: %d\n", shdr->sh_link);
+    printf("  Additional section information: %d\n", shdr->sh_info);
+    printf("  Section alignment: %d\n", shdr->sh_addralign);
+    printf("  Entry size if section holds table: %d\n", shdr->sh_entsize);
+    printf("\n");
 }
 
 static void print_type(Elf_Ehdr *hdr) {
@@ -907,33 +1022,85 @@ static void print_shstrndx(Elf_Ehdr *hdr) {
     print_with_hex(hdr, "  Section header string table index: %d\n", e_shstrndx);
 }
 
-void print_header(const char *filename) {
-    Elf_Ehdr hdr;
-    FILE *fp = fopen(filename, "r");
-    if (!fp) {
-        fprintf(stderr, "failed to open elf image file [%s]\n", filename);
+Elf_Ehdr* get_ehdr(FILE *fp) {
+    long restore = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    Elf_Ehdr *hdr = (Elf_Ehdr*)malloc(sizeof(Elf_Ehdr));
+    if (!hdr) {
+        fprintf(stderr, "failed to malloc for elf header\n");
         exit(-1);
     }
+    fread(hdr, sizeof(Elf_Ehdr), 1, fp);
+    fseek(fp, restore, SEEK_SET);
+    return hdr;
+}
 
-    fread(&hdr, sizeof(Elf_Ehdr), 1, fp);
+Elf_Shdr* get_shdr_by_name(Elf_Shdr* s, int size, const char *name, char *shstrtab) {
+    for (int i = 0; i < size; i++) {
+        if (strcmp(name, shstrtab+s[i].sh_name) == 0) {
+            return &s[i];
+        }
+    }
+    return NULL;
+}
 
-    parse_section(fp, &hdr);
+char* get_strtab(FILE *fp, Elf_Shdr *shdr, Elf_Ehdr *ehdr, char *s) {
+    long restore = ftell(fp);
+    Elf_Shdr *temp = get_shdr_by_name(shdr, ehdr->e_shnum, ".strtab", s);
+    if (!temp) {
+        return NULL;
+    }
 
+    int offset = temp->sh_offset;
+    int size = temp->sh_size;
+    char *res = malloc(size);
+    fseek(fp, offset, SEEK_SET);
+    fread(res, size, 1, fp);
+    fseek(fp, restore, SEEK_SET);
+    return res;
+}
+
+char* get_shstrtab(FILE *fp, Elf_Ehdr* hdr, Elf_Shdr *shdr) {
+    long restore = ftell(fp);
+    Elf_Shdr *temp = &shdr[hdr->e_shstrndx];
+    int offset = temp->sh_offset;
+    int size = temp->sh_size;
+    char *res = malloc(size);
+    fseek(fp, offset, SEEK_SET);
+    fread(res, size, 1, fp);
+    fseek(fp, restore, SEEK_SET);
+    return res;
+}
+
+Elf_Shdr* get_shdr(FILE *fp, Elf_Ehdr *hdr) {
+    long restore = ftell(fp);
+    Elf_Shdr *res = NULL;
+    int size = hdr->e_shnum;
+    fseek(fp, hdr->e_shoff, SEEK_SET);
+    res = malloc(size * sizeof(Elf_Shdr));
+    if(!res) {
+        fprintf(stderr, "failed to malloc for section header\n");
+        exit(-1);
+    }
+    fread(res, sizeof(Elf_Shdr), size, fp);
+    fseek(fp, restore, SEEK_SET);
+    return res;
+}
+
+void print_header(Elf_Ehdr *hdr) {
     printf("ELF Header:\n");
-    print_magic(&hdr);
-    print_type(&hdr);
-    print_machine(&hdr);
-    print_version(&hdr);
-    print_entry(&hdr);
-    print_phoff(&hdr);
-    print_shoff(&hdr);
-    print_flags(&hdr);
-    print_selfsize(&hdr);
-    print_phentsize(&hdr);
-    print_phnum(&hdr);
-    print_shentsize(&hdr);
-    print_shnum(&hdr);
-    print_shstrndx(&hdr);
-
-    fclose(fp);
+    print_magic(hdr);
+    print_type(hdr);
+    print_machine(hdr);
+    print_version(hdr);
+    print_entry(hdr);
+    print_phoff(hdr);
+    print_shoff(hdr);
+    print_flags(hdr);
+    print_selfsize(hdr);
+    print_phentsize(hdr);
+    print_phnum(hdr);
+    print_shentsize(hdr);
+    print_shnum(hdr);
+    print_shstrndx(hdr);
 }

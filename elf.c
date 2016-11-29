@@ -14,7 +14,39 @@ int main(int argc, char *argv[]) {
     } else {
         filename = argv[1];
     }
-    print_header(filename);
+
+    FILE *fp = fopen(filename, "r");
+    if (!fp) {
+        fprintf(stderr, "failed to open elf file [%s], quiting...\n", filename);
+        exit(-1);
+    }
+
+    Elf_Ehdr *ehdr = get_ehdr(fp);
+    Elf_Shdr *shdr = get_shdr(fp, ehdr);
+    char *shstrtab = get_shstrtab(fp, ehdr, shdr);
+    Elf_Shdr *symtab = get_shdr_by_name(shdr, ehdr->e_shnum, ".symtab", shstrtab);
+    char *strtab = get_strtab(fp, shdr, ehdr, shstrtab);
+    int sh_size = ehdr->e_shnum;
+    
+    // print header
+    print_header(ehdr);
+    printf("\n");
+
+    // print section
+    for (int i = 0; i < ehdr->e_shnum; i++) {
+        print_section(shdr+i, shstrtab, strtab);
+    }
+    printf("\n");
+
+    // print symbols
+    Elf_Sym *symbols = get_symbol(fp, symtab);
+    int size = symtab->sh_size / symtab->sh_entsize;
+    printf(" start for dump symbols ====\n");
+    for (int i = 0; i < size; i++) {
+        print_symbol(&symbols[i], strtab);
+        printf("\n");
+    }
+    fclose(fp);
     return 0;
 }
 
