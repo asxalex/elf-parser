@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 #include <sys/types.h>
-#include <elf.h>
+#include "elf.h"
 #include <stdlib.h>
 #include <string.h>
 
