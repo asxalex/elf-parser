@@ -5,7 +5,7 @@
 
 TARGET=elf_parser
 CC=gcc
-CFLAGS=-g
+CFLAGS=-g --std=c99
 C_SRC=$(shell find . -name "*.c")
 C_OBJ=$(C_SRC:%.c=%.o)
 #C_OBJ=$(patsubst %.c, %.o, $(C_SRC))
