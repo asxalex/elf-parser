@@ -9,7 +9,8 @@
 
 static void print_magic(Elf_Ehdr *hdr) {
     printf("  Magic: ");
-    for (int i = 0; i < EI_NIDENT; i++) {
+    int i;
+    for (i = 0; i < EI_NIDENT; i++) {
         printf("%02x ", hdr->e_ident[i]);
     }
     printf("\n");
@@ -1036,7 +1037,8 @@ Elf_Ehdr* get_ehdr(FILE *fp) {
 }
 
 Elf_Shdr* get_shdr_by_name(Elf_Shdr* s, int size, const char *name, char *shstrtab) {
-    for (int i = 0; i < size; i++) {
+    int i;
+    for (i = 0; i < size; i++) {
         if (strcmp(name, shstrtab+s[i].sh_name) == 0) {
             return &s[i];
         }

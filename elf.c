@@ -33,7 +33,8 @@ int main(int argc, char *argv[]) {
     printf("\n");
 
     // print section
-    for (int i = 0; i < ehdr->e_shnum; i++) {
+    int i;
+    for (i = 0; i < ehdr->e_shnum; i++) {
         print_section(shdr+i, shstrtab, strtab);
     }
     printf("\n");
@@ -42,11 +43,16 @@ int main(int argc, char *argv[]) {
     Elf_Sym *symbols = get_symbol(fp, symtab);
     int size = symtab->sh_size / symtab->sh_entsize;
     printf(" start for dump symbols ====\n");
-    for (int i = 0; i < size; i++) {
+    for (i = 0; i < size; i++) {
         print_symbol(&symbols[i], strtab);
         printf("\n");
     }
     fclose(fp);
+    free(ehdr);
+    free(strtab);
+    free(shstrtab);
+    free(symbols);
+    free(shdr);
     return 0;
 }
 
