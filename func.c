@@ -334,10 +334,6 @@ static void print_symbol_info(Elf_Sym *symbol) {
     printf("\n");
 }
 
-static void print_symbol_value(Elf_Sym* symbol) {
-    
-}
-
 static void print_symbol_shndx(Elf_Sym* symbol) {
     printf("    shndx: ");
     switch(symbol->st_shndx) {
@@ -1044,6 +1040,71 @@ Elf_Shdr* get_shdr_by_name(Elf_Shdr* s, int size, const char *name, char *shstrt
         }
     }
     return NULL;
+}
+
+static void print_relocation_type(int type) {
+    printf("  type:(%d) ", type);
+    switch(type) {
+        case R_X86_64_NONE:       
+            printf("No reloc");
+            break;
+        case R_X86_64_64:     
+            printf("Direct 64 bit");
+            break;
+        case R_X86_64_PC32:       
+            printf("PC(pointer counter) relative 32 bit signed");
+            break;
+        case R_X86_64_GOT32:      
+            printf("32 bit GOT entry");
+            break;
+        case R_X86_64_PLT32:      
+            printf("32 bit PLT address");
+            break;
+        case R_X86_64_COPY:       
+            printf("Copy symbol at runtime");
+            break;
+        case R_X86_64_GLOB_DAT:   
+            printf("Create GOT entry");
+            break;
+        case R_X86_64_JUMP_SLOT:  
+            printf("Create PLT entry");
+            break;
+        case R_X86_64_RELATIVE:   
+            printf("Adjust by program base");
+            break;
+        case R_X86_64_GOTPCREL:   
+            printf("32 bit signed PC relative offset to GOT");
+            break;
+        case R_X86_64_32:     
+            printf("Direct 32 bit zero extended");
+            break;
+    }
+    printf("\n");
+}
+
+void print_relocation_info(Elf_Rela* r, Elf_Sym* symtab, char *strtab) {
+    int type = ELF_R_TYPE(r->r_info);
+    int sym = ELF_R_SYM(r->r_info);
+    print_relocation_type(type);
+    print_symbol(&symtab[sym], strtab);
+    //printf("  sym: %s\n", symtab[sym]);
+    printf("  offset: %d\n", r->r_offset);
+    printf("  addend: %d\n", r->r_addend);
+    printf("\n");
+}
+
+Elf_Rela* get_relocation(FILE *fp, Elf_Shdr *rel) {
+    long restore = ftell(fp);
+    fseek(fp, rel->sh_offset, SEEK_SET);
+    Elf_Rela *res = malloc(rel->sh_size);
+    if (!res) {
+        fprintf(stderr, "failed to malloc for relocation\n");
+        exit(-1);
+    }
+
+    fread(res, rel->sh_size, 1, fp);
+    fseek(fp, restore, SEEK_SET);
+    return res;
 }
 
 char* get_strtab(FILE *fp, Elf_Shdr *shdr, Elf_Ehdr *ehdr, char *s) {

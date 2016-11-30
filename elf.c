@@ -25,6 +25,7 @@ int main(int argc, char *argv[]) {
     Elf_Shdr *shdr = get_shdr(fp, ehdr);
     char *shstrtab = get_shstrtab(fp, ehdr, shdr);
     Elf_Shdr *symtab = get_shdr_by_name(shdr, ehdr->e_shnum, ".symtab", shstrtab);
+
     char *strtab = get_strtab(fp, shdr, ehdr, shstrtab);
     int sh_size = ehdr->e_shnum;
     
@@ -47,6 +48,20 @@ int main(int argc, char *argv[]) {
         print_symbol(&symbols[i], strtab);
         printf("\n");
     }
+
+    // print relocation of text.
+    printf("\ndump for text's relocation info\n");
+    Elf_Shdr *rela_text = get_shdr_by_name(shdr, ehdr->e_shnum, ".rela.text", shstrtab);
+    if (!rela_text) {
+        printf("no [.rela.text] section found");
+    } else {
+        Elf_Rela *relocation = get_relocation(fp, rela_text);
+        int size = rela_text->sh_size / rela_text->sh_entsize;
+        for (i = 0; i < size; i++) {
+            print_relocation_info(&(relocation[i]), symbols, strtab);
+        }
+    }
+
     fclose(fp);
     free(ehdr);
     free(strtab);
