@@ -5,15 +5,9 @@
  * Distributed under terms of the MIT license.
  */
 
-#include "func.h"
+#include "section.h"
 
-int main(int argc, char *argv[]) {
-    char *filename;
-    if (argc <= 1) {
-        filename = "SimpleSection.o";
-    } else {
-        filename = argv[1];
-    }
+void dump_section_info(const char *filename) {
 
     FILE *fp = fopen(filename, "r");
     if (!fp) {
@@ -43,7 +37,7 @@ int main(int argc, char *argv[]) {
     // print symbols
     Elf_Sym *symbols = get_symbol(fp, symtab);
     int size = symtab->sh_size / symtab->sh_entsize;
-    printf(" start for dump symbols ====\n");
+    printf("==== start for dump symbols ====\n");
     for (i = 0; i < size; i++) {
         print_symbol(&symbols[i], strtab);
         printf("\n");
@@ -53,7 +47,7 @@ int main(int argc, char *argv[]) {
     printf("\ndump for text's relocation info\n");
     Elf_Shdr *rela_text = get_shdr_by_name(shdr, ehdr->e_shnum, ".rela.text", shstrtab);
     if (!rela_text) {
-        printf("no [.rela.text] section found");
+        printf("no [.rela.text] section found\n");
     } else {
         Elf_Rela *relocation = get_relocation(fp, rela_text);
         int size = rela_text->sh_size / rela_text->sh_entsize;
@@ -68,6 +62,15 @@ int main(int argc, char *argv[]) {
     free(shstrtab);
     free(symbols);
     free(shdr);
-    return 0;
 }
 
+
+int main(int argc, char *argv[]) {
+    char *filename;
+    if (argc <= 1) {
+        filename = "SimpleSection.o";
+    } else {
+        filename = argv[1];
+    }
+    dump_section_info(filename);
+}

@@ -5,7 +5,7 @@
  * Distributed under terms of the MIT license.
  */
 
-#include "func.h"
+#include "section.h"
 
 static void print_magic(Elf_Ehdr *hdr) {
     printf("  Magic: ");
