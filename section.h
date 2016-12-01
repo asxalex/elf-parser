@@ -5,23 +5,15 @@
  * Distributed under terms of the MIT license.
  */
 
+#ifndef SECTION_H
+#define SECTION_H
+
 #include <stdio.h>
 #include <sys/types.h>
-#include "elf.h"
 #include <stdlib.h>
 #include <string.h>
 
-#define Elf_Shdr Elf64_Shdr
-#define Elf_Ehdr Elf64_Ehdr
-#define Elf_Sym Elf64_Sym
-#define ELF_ST_BIND ELF64_ST_BIND
-#define ELF_ST_TYPE ELF64_ST_TYPE
-#define Elf_Rela Elf64_Rela
-#define ELF_R_SYM ELF64_R_SYM
-#define ELF_R_TYPE ELF64_R_TYPE
-
-#define print_with_hex(hdr, format, member) \
-    printf(format, hdr->member)
+#include "common.h"
 
 void print_header(Elf_Ehdr *hdr);
 
@@ -37,3 +29,5 @@ void print_symbol(Elf_Sym *symbol, char *strtab);
 Elf_Sym* get_symbol(FILE *fp, Elf_Shdr *symtab);
 Elf_Rela* get_relocation(FILE *fp, Elf_Shdr *rel);
 void print_relocation_info(Elf_Rela* r, Elf_Sym* sym, char *);
+
+#endif
