@@ -6,6 +6,7 @@
 TARGET=elf_parser
 CC=gcc
 CFLAGS=-g --std=c99
+LDFLAGS=-lm
 C_SRC=$(shell find . -name "*.c")
 C_OBJ=$(C_SRC:%.c=%.o)
 #C_OBJ=$(patsubst %.c, %.o, $(C_SRC))
@@ -14,7 +15,7 @@ HEADERS=$(shell find . -name "*.h")
 .PHONY: clean run
 
 $(TARGET): $(C_OBJ)
-	$(CC) $^ -o $@
+	$(CC) $(LDFLAGS) $^ -o $@
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@

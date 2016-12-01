@@ -6,15 +6,10 @@
  */
 
 #include "section.h"
+#include "segment.h"
 
-void dump_section_info(const char *filename) {
-
-    FILE *fp = fopen(filename, "r");
-    if (!fp) {
-        fprintf(stderr, "failed to open elf file [%s], quiting...\n", filename);
-        exit(-1);
-    }
-
+void dump_section_info(FILE *fp) {
+    long restore = ftell(fp);
     Elf_Ehdr *ehdr = get_ehdr(fp);
     Elf_Shdr *shdr = get_shdr(fp, ehdr);
     char *shstrtab = get_shstrtab(fp, ehdr, shdr);
@@ -56,12 +51,27 @@ void dump_section_info(const char *filename) {
         }
     }
 
-    fclose(fp);
     free(ehdr);
     free(strtab);
     free(shstrtab);
     free(symbols);
     free(shdr);
+    fseek(fp, restore, SEEK_SET);
+}
+
+void dump_segment_info(FILE *fp) {
+    long restore = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    Elf_Ehdr *ehdr = get_ehdr(fp);
+    Elf_Phdr *phdr = get_phdr(fp, ehdr);
+    int i; 
+    for (i = 0; i < ehdr->e_phnum; i++) {
+        print_ph(&phdr[i]);
+    }
+
+    free(ehdr);
+    free(phdr);
+    fseek(fp, restore, SEEK_SET);
 }
 
 
@@ -72,5 +82,13 @@ int main(int argc, char *argv[]) {
     } else {
         filename = argv[1];
     }
-    dump_section_info(filename);
+
+    FILE *fp = fopen(filename, "r");
+    if (!fp) {
+        fprintf(stderr, "failed to open elf file [%s], quiting...\n", filename);
+        exit(-1);
+    }
+    dump_section_info(fp);
+    dump_segment_info(fp);
+    fclose(fp);
 }

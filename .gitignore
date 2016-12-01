@@ -1,3 +1,4 @@
 *.o
 elf_parser
 .*.swp
+*.elf
